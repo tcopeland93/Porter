@@ -103,8 +103,8 @@ b4 = -.173, b5 = -.319, b6 = -.208, delta = 0.368)
 
 #Code to test LL function: LogLL.estllambda(9.1,-.735,-.437,-3.975,.253,-.202,-.173,-.319,-.208,.368)
 
-llambda = .6           #sum(I)/length(I)
-#I <- rep(0.6,328)
+llambda = .5           #sum(I)/length(I)
+I <- rep(c(.25,.75), 164)
 
 
 LogLL.estllambda <- function(a1,a2,a3,b1,b2,b3,b4,b5,b6,delta){
@@ -129,10 +129,12 @@ omega <- list(a1 = as.numeric(estimates[1]), a2 = as.numeric(estimates[2]), a3 =
 		delta = as.numeric(estimates[10]))
 
 w <- function(){
-	u1 <- y %*% B - X %*% gma - matrix(rep(1,328), ncol=1) %*% matrix(c(0,delta),ncol=2)
-	u0 <- y %*% B - X %*% gma
-	num <- llambda*(1/(2*pi))*(det(Sigma)**-.5)*norm(B, type = "f")*(exp(-0.5*diag(u1 %*% solve(Sigma) %*% t(u1))))
-	den <- num + (1-llambda)*(1/(2*pi))*(det(Sigma)**-.5)*norm(B, type = "f")*(exp(-0.5*diag(u0 %*% solve(Sigma) %*% t(u0))))
+	u1 <<- y %*% B - X %*% gma - matrix(rep(1,328), ncol=1) %*% matrix(c(0,delta),ncol=2)
+	u0 <<- y %*% B - X %*% gma
+	Sigma.1 <<- t(u1) %*% u1
+	Sigma.0 <<- t(u0) %*% u0
+	num <<- llambda*(1/(2*pi))*(det(Sigma.1)**-.5)*norm(B, type = "f")*(exp(-0.5*diag(u1 %*% solve(Sigma.1) %*% t(u1))))
+	den <<- num + (1-llambda)*(1/(2*pi))*(det(Sigma.0)**-.5)*norm(B, type = "f")*(exp(-0.5*diag(u0 %*% solve(Sigma.0) %*% t(u0))))
 	num/den
 }
 
@@ -143,8 +145,9 @@ I <- w()
 print(w())
 
 estimates.log <- matrix(c(rep(c(0,1),5),estimates), ncol=10, byrow = TRUE)
+I.log <- matrix(c(rep(c(0,1), 164),I),ncol = 328, byrow = TRUE)
 
-while(cor(estimates.log[dim(estimates.log)[1],],estimates.log[(dim(estimates.log)[1]-1),])<0.999){
+while(cor(I.log[dim(I.log)[1],],I.log[(dim(I.log)[1]-1),])<0.999){
 	LLest <- mle(LogLL.estllambda, start = omega, method = "Nelder-Mead")
 	estimates <- coef(LLest)
 	B <- matrix(c(1,-estimates[2],-estimates[5],1),ncol=2)
@@ -160,10 +163,13 @@ while(cor(estimates.log[dim(estimates.log)[1],],estimates.log[(dim(estimates.log
 	estimates.log <- rbind(estimates.log,estimates)
 	
 	
-	#w()
-	#I <- w()
-	#print(w()[1:20])
-	#llambda = sum(I)/length(I)
+	
+	w()
+	I <- w()
+	I.log <- rbind(I.log, I)
+	print(w()[1:20])
+	print(llambda)
+	llambda = sum(I)/length(I)
 }
 
 
